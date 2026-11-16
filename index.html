@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seno, coseno e vettori</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* Layout: foglio a quadretti. Barra di schede in alto, poi disegno a sinistra e misure a destra.
+   Filo conduttore: blu = orizzontale = coseno, rosso = verticale = seno, in ogni scheda. */
+:root{
+  --paper:#f3f5fa; --surface:#ffffff; --ink:#1b2233; --muted:#5b6578;
+  --grid:#dbe1ee; --line:#c0c9db;
+  --cos:#1f5fd0; --sin:#c8323c;
+  --va:#0b8468; --vb:#b86200; --accent:#6a3fc9;
+  --ok:#0b8468; --no:#c8323c;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#111622; --surface:#1a2131; --ink:#e8ecf5; --muted:#9ba6bb;
+    --grid:#242d42; --line:#36425e;
+    --cos:#72abff; --sin:#ff7f85;
+    --va:#4fd1a9; --vb:#f0a94a; --accent:#b599ff;
+    --ok:#4fd1a9; --no:#ff7f85;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#111622; --surface:#1a2131; --ink:#e8ecf5; --muted:#9ba6bb;
+  --grid:#242d42; --line:#36425e;
+  --cos:#72abff; --sin:#ff7f85;
+  --va:#4fd1a9; --vb:#f0a94a; --accent:#b599ff;
+  --ok:#4fd1a9; --no:#ff7f85;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:1060px;margin:0 auto;padding:20px 16px 56px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.1;margin:0;text-wrap:balance}
+h1 .c{color:var(--cos)} h1 .s{color:var(--sin)} h1 .v{color:var(--accent)}
+h2{font-family:var(--display);font-weight:600;font-size:1.35rem;line-height:1.2;margin:0;text-wrap:balance}
+h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:700}
+p{margin:0;max-width:65ch}
+nav{display:flex;flex-wrap:wrap;gap:8px}
+nav a{font-weight:700;text-decoration:none;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:8px 16px}
+nav a[aria-current="page"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+a:focus-visible,button:focus-visible,input:focus-visible,canvas:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+section.view{display:flex;flex-direction:column;gap:16px}
+section.view[hidden]{display:none}
+.cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:780px){.cols{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px}
+canvas{display:block;width:100%;touch-action:none;border-radius:8px;cursor:grab}
+canvas.sq{aspect-ratio:1/1} canvas.wide{aspect-ratio:5/2} canvas.tri{aspect-ratio:4/3;cursor:default}
+.hint{font-size:.9rem;color:var(--muted);padding:0 6px 4px}
+.panel{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.vals{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:baseline;font-variant-numeric:tabular-nums}
+.vals dt{font-weight:700} .vals dd{margin:0;font-size:1.15rem}
+.vals small{color:var(--muted);font-size:.9rem}
+.cos{color:var(--cos)} .sin{color:var(--sin)} .va{color:var(--va)} .vb{color:var(--vb)} .vs{color:var(--accent)}
+.f{font-variant-numeric:tabular-nums;font-size:1.05rem;overflow-wrap:anywhere}
+.f b{font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:700}
+label.sl span{font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+label.ck{display:flex;gap:8px;align-items:center}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:var(--accent)}
+button{font:inherit;font-weight:700;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tw{overflow-x:auto}
+/* esercizi */
+.quiz{max-width:720px}
+.q{font-size:1.2rem;font-weight:700;max-width:60ch}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:480px){.opts{grid-template-columns:1fr}}
+.opts button{padding:14px 12px;font-size:1.1rem;background:var(--surface);font-variant-numeric:tabular-nums}
+.opts button.right{border-color:var(--ok);color:var(--ok);box-shadow:inset 0 0 0 1.5px var(--ok)}
+.opts button.wrong{border-color:var(--no);color:var(--no);box-shadow:inset 0 0 0 1.5px var(--no)}
+.opts button:disabled{cursor:default;opacity:1}
+.fb{min-height:3.2em}
+.fb strong.ok{color:var(--ok)} .fb strong.no{color:var(--no)}
+.score{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><span class="s">Seno</span>, <span class="c">coseno</span> e <span class="v">vettori</span></h1>
+  <nav aria-label="Schede">
+    <a href="#circonferenza">Circonferenza</a>
+    <a href="#triangolo">Triangolo rettangolo</a>
+    <a href="#componenti">Componenti</a>
+    <a href="#somma">Somma di vettori</a>
+    <a href="#esercizi">Esercizi</a>
+  </nav>
+</header>
+
+<!-- 1 -->
+<section class="view" id="v-circonferenza">
+  <h2>La circonferenza goniometrica</h2>
+  <p>Prendi una circonferenza di raggio 1 e un punto P che ci gira sopra. Il <b class="cos">coseno</b> dell'angolo è la coordinata x di P, il <b class="sin">seno</b> è la coordinata y.</p>
+  <div class="cols">
+    <div class="board">
+      <canvas id="cCircle" class="sq" tabindex="0" aria-label="Circonferenza goniometrica. Usa le frecce per cambiare l'angolo."></canvas>
+      <div class="hint">Trascina il punto P, oppure usa il cursore qui a fianco.</div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <label class="sl" for="angle">Angolo θ <span id="angleOut"></span>
+          <input type="range" id="angle" min="0" max="360" step="1" value="35"></label>
+        <div class="row" id="notable"></div>
+        <label class="ck" for="snap"><input type="checkbox" id="snap"> Aggancia ai multipli di 15°</label>
+      </div>
+      <div class="card">
+        <h3>Valori</h3>
+        <dl class="vals">
+          <dt class="cos">cos θ</dt><dd id="cosOut"></dd>
+          <dt class="sin">sin θ</dt><dd id="sinOut"></dd>
+        </dl>
+        <div class="f" id="pyth"></div>
+      </div>
+    </div>
+  </div>
+  <div class="board">
+    <canvas id="cGraph" class="wide" aria-label="Grafici di seno e coseno da 0 a 360 gradi"></canvas>
+    <div class="hint">Gli stessi valori al variare dell'angolo: <b class="sin">sin θ</b> e <b class="cos">cos θ</b>. Trascina anche qui.</div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="view" id="v-triangolo" hidden>
+  <h2>Il triangolo rettangolo</h2>
+  <p>Se la circonferenza ha raggio diverso da 1, tutto si ingrandisce nella stessa proporzione. In un triangolo rettangolo con ipotenusa <b>i</b>, il <b class="cos">cateto adiacente</b> all'angolo vale i · cos α e il <b class="sin">cateto opposto</b> vale i · sin α.</p>
+  <div class="cols">
+    <div class="board"><canvas id="cTri" class="tri" aria-label="Triangolo rettangolo"></canvas></div>
+    <div class="panel">
+      <div class="card">
+        <label class="sl" for="hyp">Ipotenusa i <span id="hypOut"></span>
+          <input type="range" id="hyp" min="1" max="10" step="0.5" value="8"></label>
+        <label class="sl" for="alpha">Angolo α <span id="alphaOut"></span>
+          <input type="range" id="alpha" min="5" max="85" step="1" value="30"></label>
+      </div>
+      <div class="card">
+        <h3>Cateti</h3>
+        <div class="f" id="triAdj"></div>
+        <div class="f" id="triOpp"></div>
+        <div class="f" id="triChk"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="view" id="v-componenti" hidden>
+  <h2>Le componenti di un vettore</h2>
+  <p>Un vettore è l'ipotenusa di un triangolo rettangolo. I due cateti sono le sue componenti: <b class="cos">v<sub>x</sub></b> lungo l'asse x e <b class="sin">v<sub>y</sub></b> lungo l'asse y.</p>
+  <div class="cols">
+    <div class="board">
+      <canvas id="cComp" class="sq" tabindex="0" aria-label="Piano cartesiano con un vettore. Usa le frecce per spostare la punta."></canvas>
+      <div class="hint">Trascina la punta del vettore.</div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Misure</h3>
+        <dl class="vals">
+          <dt>modulo v</dt><dd id="cmMod"></dd>
+          <dt>angolo θ</dt><dd id="cmAng"></dd>
+          <dt class="cos">v<sub>x</sub></dt><dd id="cmX"></dd>
+          <dt class="sin">v<sub>y</sub></dt><dd id="cmY"></dd>
+        </dl>
+        <label class="ck" for="snapV"><input type="checkbox" id="snapV" checked> Aggancia alla griglia</label>
+      </div>
+      <div class="card">
+        <h3>Da modulo e angolo alle componenti</h3>
+        <div class="f" id="cmF1"></div>
+        <div class="f" id="cmF2"></div>
+      </div>
+      <div class="card">
+        <h3>Dalle componenti al modulo</h3>
+        <div class="f" id="cmF3"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="view" id="v-somma" hidden>
+  <h2>La somma di due vettori</h2>
+  <p>Per sommare due vettori si sommano le componenti: le x con le x, le y con le y. Sul disegno è la regola del parallelogramma, oppure il metodo punta-coda.</p>
+  <div class="cols">
+    <div class="board">
+      <canvas id="cSum" class="sq" tabindex="0" aria-label="Piano cartesiano con due vettori e la loro somma"></canvas>
+      <div class="hint">Trascina le punte di <b class="va">a</b> e <b class="vb">b</b>.</div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Metodo</h3>
+        <label class="ck" for="mPar"><input type="radio" name="met" id="mPar" checked> Parallelogramma</label>
+        <label class="ck" for="mPc"><input type="radio" name="met" id="mPc"> Punta-coda</label>
+      </div>
+      <div class="card">
+        <h3>Componenti</h3>
+        <div class="tw"><table>
+          <thead><tr><th>Vettore</th><th>x</th><th>y</th><th>modulo</th><th>angolo</th></tr></thead>
+          <tbody id="sumT"></tbody>
+        </table></div>
+        <div class="f" id="sumF"></div>
+        <div class="f" id="sumN"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="view" id="v-esercizi" hidden>
+  <h2>Esercizi</h2>
+  <div class="card quiz">
+    <div class="row" style="justify-content:space-between">
+      <h3 id="qKind"></h3><span class="score" id="score"></span>
+    </div>
+    <div class="q" id="qText"></div>
+    <div class="opts" id="qOpts"></div>
+    <div class="fb" id="qFb" aria-live="polite"></div>
+    <div class="row"><button class="primary" id="qNext">Prossima domanda</button></div>
+  </div>
+</section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+function fmt(x,d){ if(d===undefined)d=2; if(Math.abs(x)<0.5*Math.pow(10,-d))x=0; return x.toFixed(d).replace('.',',').replace('-','−'); }
+function fmtN(x){ return Number.isInteger(x)?String(x).replace('-','−'):fmt(x); }
+const EX=[[0,'0'],[0.5,'1/2'],[Math.SQRT1_2,'√2/2'],[Math.sqrt(3)/2,'√3/2'],[1,'1']];
+function exact(v){ for(const e of EX){ if(Math.abs(Math.abs(v)-e[0])<1e-9) return (v<-1e-9?'−':'')+e[1]; } return null; }
+function ang360(x,y){ let a=deg(Math.atan2(y,x)); if(a<0)a+=360; return a; }
+
+/* ---------- colori dal tema ---------- */
+let C={};
+function readColors(){ const s=getComputedStyle(document.documentElement);
+  ['paper','surface','ink','muted','grid','line','cos','sin','va','vb','accent'].forEach(k=>C[k]=s.getPropertyValue('--'+k).trim()); }
+const FONT='"Atkinson Hyperlegible","Segoe UI",sans-serif';
+
+/* ---------- gestione canvas ---------- */
+const boards=[];
+function board(canvas,draw){
+  const ctx=canvas.getContext('2d');
+  const o={canvas,ctx,w:0,h:0,redraw(){ if(!o.w)return; const d=window.devicePixelRatio||1;
+    ctx.setTransform(d,0,0,d,0,0); ctx.clearRect(0,0,o.w,o.h); ctx.lineCap='round'; ctx.lineJoin='round'; draw(ctx,o.w,o.h); }};
+  new ResizeObserver(()=>{ const r=canvas.getBoundingClientRect(); if(!r.width)return; const d=window.devicePixelRatio||1;
+    o.w=r.width; o.h=r.height; canvas.width=Math.round(r.width*d); canvas.height=Math.round(r.height*d); o.redraw(); }).observe(canvas);
+  boards.push(o); return o;
+}
+function dragOn(o,fn){
+  let on=false; const c=o.canvas;
+  const pos=e=>{ const r=c.getBoundingClientRect(); return [e.clientX-r.left,e.clientY-r.top]; };
+  c.addEventListener('pointerdown',e=>{ on=true; try{c.setPointerCapture(e.pointerId);}catch(_){ } const p=pos(e); fn(p[0],p[1],true); e.preventDefault(); });
+  c.addEventListener('pointermove',e=>{ if(!on)return; const p=pos(e); fn(p[0],p[1],false); });
+  const end=()=>{on=false;}; c.addEventListener('pointerup',end); c.addEventListener('pointercancel',end);
+}
+function line(ctx,x1,y1,x2,y2,col,wd,dash){ ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=wd||1; if(dash)ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore(); }
+function arrow(ctx,x1,y1,x2,y2,col,wd,dash){
+  const L=Math.hypot(x2-x1,y2-y1); if(L<2)return; const a=Math.atan2(y2-y1,x2-x1), hs=Math.min(13,L*0.45)+wd;
+  const bx=x2-Math.cos(a)*hs*0.8, by=y2-Math.sin(a)*hs*0.8;
+  line(ctx,x1,y1,bx,by,col,wd,dash);
+  ctx.save(); ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-Math.cos(a-0.42)*hs,y2-Math.sin(a-0.42)*hs); ctx.lineTo(x2-Math.cos(a+0.42)*hs,y2-Math.sin(a+0.42)*hs); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function dot(ctx,x,y,r,fill,stroke){ ctx.save(); ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fillStyle=fill; ctx.fill(); if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2.5;ctx.stroke();} ctx.restore(); }
+function text(ctx,s,x,y,col,opt){ opt=opt||{}; ctx.save(); ctx.font=(opt.bold?'700 ':'400 ')+(opt.size||14)+'px '+FONT; ctx.textAlign=opt.align||'center'; ctx.textBaseline=opt.base||'middle';
+  ctx.lineWidth=4; ctx.strokeStyle=C.surface; ctx.strokeText(s,x,y); ctx.fillStyle=col; ctx.fillText(s,x,y); ctx.restore(); }
+function arc(ctx,cx,cy,r,aDeg,col){ ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,r,0,-rad(aDeg),true); ctx.stroke(); ctx.restore(); }
+
+/* ================= 1. CIRCONFERENZA ================= */
+let theta=35;
+const bCircle=board($('cCircle'),(ctx,w,h)=>{
+  const cx=w/2, cy=h/2, R=Math.min(w,h)*0.36, t=rad(theta), co=Math.cos(t), si=Math.sin(t);
+  // quadretti
+  const st=R/4; for(let x=cx%st;x<w;x+=st)line(ctx,x,0,x,h,C.grid,1); for(let y=cy%st;y<h;y+=st)line(ctx,0,y,w,y,C.grid,1);
+  arrow(ctx,8,cy,w-8,cy,C.muted,1.5); arrow(ctx,cx,h-8,cx,8,C.muted,1.5);
+  text(ctx,'x',w-14,cy+14,C.muted); text(ctx,'y',cx+14,14,C.muted);
+  ctx.save(); ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.stroke(); ctx.restore();
+  [[1,0,'1',10,14],[-1,0,'−1',-14,14],[0,1,'1',-12,-10],[0,-1,'−1',-14,12]].forEach(a=>text(ctx,a[2],cx+a[0]*R+a[3],cy-a[1]*R+a[4],C.muted,{size:13}));
+  const px=cx+R*co, py=cy-R*si;
+  if(theta>0.5) arc(ctx,cx,cy,Math.min(30,R*0.25),theta,C.accent);
+  const tm=rad(theta/2); text(ctx,'θ',cx+Math.cos(tm)*(Math.min(30,R*0.25)+13),cy-Math.sin(tm)*(Math.min(30,R*0.25)+13),C.accent,{bold:true});
+  line(ctx,px,py,cx,py,C.line,1.5,[5,5]);
+  line(ctx,cx,cy,px,py,C.ink,2.5);
+  line(ctx,cx,cy,px,cy,C.cos,5); line(ctx,px,cy,px,py,C.sin,5);
+  if(Math.abs(co)>0.12) text(ctx,'cos θ',cx+R*co/2,cy+(si>=0?16:-16),C.cos,{bold:true});
+  if(Math.abs(si)>0.12) text(ctx,'sin θ',px+(co>=0?8:-8),cy-R*si/2,C.sin,{bold:true,align:co>=0?'left':'right'});
+  dot(ctx,px,py,9,C.accent,C.surface);
+  text(ctx,'P',px+(co>=0?16:-16),py+(si>=0?-14:14),C.ink,{bold:true,size:15});
+});
+dragOn(bCircle,(x,y)=>{ setTheta(ang360(x-bCircle.w/2,bCircle.h/2-y)); });
+$('cCircle').addEventListener('keydown',e=>{ const k={ArrowLeft:1,ArrowUp:1,ArrowRight:-1,ArrowDown:-1}[e.key]; if(!k)return; e.preventDefault();
+  setTheta((theta+k*($('snap').checked?15:1)+360)%360); });
+
+const bGraph=board($('cGraph'),(ctx,w,h)=>{
+  const L=34,Rr=14,T=14,B=26, gw=w-L-Rr, gh=h-T-B, X=d=>L+d/360*gw, Y=v=>T+(1-v)/2*gh;
+  for(let d=0;d<=360;d+=30)line(ctx,X(d),T,X(d),T+gh,C.grid,1);
+  [-1,-0.5,0.5,1].forEach(v=>line(ctx,L,Y(v),L+gw,Y(v),C.grid,1));
+  line(ctx,L,Y(0),L+gw,Y(0),C.muted,1.5); line(ctx,L,T,L,T+gh,C.muted,1.5);
+  [0,90,180,270,360].forEach(d=>text(ctx,d+'°',X(d),T+gh+14,C.muted,{size:12}));
+  [[1,'1'],[0,'0'],[-1,'−1']].forEach(a=>text(ctx,a[1],L-8,Y(a[0]),C.muted,{size:12,align:'right'}));
+  [[Math.sin,C.sin],[Math.cos,C.cos]].forEach(f=>{ ctx.save(); ctx.strokeStyle=f[1]; ctx.lineWidth=2.5; ctx.beginPath();
+    for(let d=0;d<=360;d+=2){ const x=X(d),y=Y(f[0](rad(d))); d?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke(); ctx.restore(); });
+  const x=X(theta); line(ctx,x,T,x,T+gh,C.accent,1.5,[4,4]);
+  dot(ctx,x,Y(Math.sin(rad(theta))),6,C.sin,C.surface); dot(ctx,x,Y(Math.cos(rad(theta))),6,C.cos,C.surface);
+  bGraph.geom={L,gw};
+});
+dragOn(bGraph,x=>{ const g=bGraph.geom; if(!g)return; setTheta(Math.max(0,Math.min(360,(x-g.L)/g.gw*360))); });
+
+function setTheta(v){
+  if($('snap').checked) v=Math.round(v/15)*15; else v=Math.round(v);
+  theta=Math.max(0,Math.min(360,v)); $('angle').value=theta;
+  const co=Math.cos(rad(theta)), si=Math.sin(rad(theta)), ec=exact(co), es=exact(si);
+  $('angleOut').textContent='= '+theta+'°  ('+fmt(rad(theta))+' rad)';
+  $('cosOut').innerHTML=fmt(co,3)+(ec&&ec.length>1&&ec!=='−1'?' <small>= '+ec+'</small>':'');
+  $('sinOut').innerHTML=fmt(si,3)+(es&&es.length>1&&es!=='−1'?' <small>= '+es+'</small>':'');
+  $('pyth').innerHTML='<b class="cos">cos²θ</b> + <b class="sin">sin²θ</b> = '+fmt(co*co,3)+' + '+fmt(si*si,3)+' = <b>1</b> <small style="color:var(--muted)">(teorema di Pitagora)</small>';
+  bCircle.redraw(); bGraph.redraw();
+}
+$('angle').addEventListener('input',e=>setTheta(+e.target.value));
+$('snap').addEventListener('change',()=>setTheta(theta));
+[0,30,45,60,90,120,135,180,270].forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.textContent=a+'°'; b.addEventListener('click',()=>setTheta(a)); $('notable').appendChild(b); });
+
+/* ================= 2. TRIANGOLO ================= */
+let hyp=8, alpha=30;
+const bTri=board($('cTri'),(ctx,w,h)=>{
+  const pad=44, s=Math.min((w-2*pad)/10,(h-2*pad)/10), a=hyp*Math.cos(rad(alpha)), b=hyp*Math.sin(rad(alpha));
+  const Ax=pad, Ay=h-pad, Bx=Ax+a*s, By=Ay, Cx=Bx, Cy=By-b*s;
+  ctx.save(); ctx.fillStyle=C.grid; ctx.globalAlpha=.5; ctx.beginPath(); ctx.moveTo(Ax,Ay); ctx.lineTo(Bx,By); ctx.lineTo(Cx,Cy); ctx.closePath(); ctx.fill(); ctx.restore();
+  const q=Math.min(12,a*s*0.3,b*s*0.3); ctx.save(); ctx.strokeStyle=C.muted; ctx.lineWidth=1.5; ctx.strokeRect(Bx-q,By-q,q,q); ctx.restore();
+  line(ctx,Ax,Ay,Cx,Cy,C.ink,3.5); line(ctx,Ax,Ay,Bx,By,C.cos,5); line(ctx,Bx,By,Cx,Cy,C.sin,5);
+  const r=Math.min(34,a*s*0.5); arc(ctx,Ax,Ay,r,alpha,C.accent);
+  text(ctx,'α',Ax+Math.cos(rad(alpha/2))*(r+13),Ay-Math.sin(rad(alpha/2))*(r+13),C.accent,{bold:true});
+  text(ctx,'adiacente = '+fmt(a),(Ax+Bx)/2,Ay+20,C.cos,{bold:true});
+  text(ctx,'opposto = '+fmt(b),Bx+10,(By+Cy)/2,C.sin,{bold:true,align:Bx+130>w?'right':'left'});
+  const nx=-Math.sin(rad(alpha)), ny=-Math.cos(rad(alpha));
+  text(ctx,'i = '+fmtN(hyp),(Ax+Cx)/2+nx*20,(Ay+Cy)/2+ny*20,C.ink,{bold:true});
+});
+function setTri(){
+  hyp=+$('hyp').value; alpha=+$('alpha').value; const co=Math.cos(rad(alpha)), si=Math.sin(rad(alpha));
+  $('hypOut').textContent='= '+fmtN(hyp); $('alphaOut').textContent='= '+alpha+'°';
+  $('triAdj').innerHTML='<b class="cos">adiacente</b> = i · cos α = '+fmtN(hyp)+' · '+fmt(co,3)+' = <b class="cos">'+fmt(hyp*co)+'</b>';
+  $('triOpp').innerHTML='<b class="sin">opposto</b> = i · sin α = '+fmtN(hyp)+' · '+fmt(si,3)+' = <b class="sin">'+fmt(hyp*si)+'</b>';
+  $('triChk').innerHTML='Verifica: √('+fmt(hyp*co)+'² + '+fmt(hyp*si)+'²) = <b>'+fmt(hyp)+'</b>';
+  bTri.redraw();
+}
+$('hyp').addEventListener('input',setTri); $('alpha').addEventListener('input',setTri);
+
+/* ================= piano cartesiano comune ================= */
+const RANGE=7;
+function plane(ctx,w,h){
+  const u=w/(2*RANGE), cx=w/2, cy=h/2;
+  for(let i=-RANGE;i<=RANGE;i++){ line(ctx,cx+i*u,0,cx+i*u,h,C.grid,1); line(ctx,0,cy+i*u,w,cy+i*u,C.grid,1); }
+  arrow(ctx,4,cy,w-4,cy,C.muted,1.5); arrow(ctx,cx,h-4,cx,4,C.muted,1.5);
+  text(ctx,'x',w-12,cy+14,C.muted); text(ctx,'y',cx+14,12,C.muted);
+  for(let i=-6;i<=6;i+=2){ if(!i)continue; text(ctx,fmtN(i),cx+i*u,cy+13,C.muted,{size:11}); text(ctx,fmtN(i),cx-12,cy-i*u,C.muted,{size:11}); }
+  return {u,cx,cy,S:(x,y)=>[cx+x*u,cy-y*u]};
+}
+function toWorld(o,px,py){ const u=o.w/(2*RANGE); return [(px-o.w/2)/u,(o.h/2-py)/u]; }
+const clampV=v=>Math.max(-6.5,Math.min(6.5,v));
+
+/* ================= 3. COMPONENTI ================= */
+let V=[4,3];
+const bComp=board($('cComp'),(ctx,w,h)=>{
+  const g=plane(ctx,w,h), O=g.S(0,0), P=g.S(V[0],V[1]), F=g.S(V[0],0), m=Math.hypot(V[0],V[1]), a=ang360(V[0],V[1]);
+  line(ctx,P[0],P[1],O[0],P[1],C.line,1.5,[5,5]);
+  arrow(ctx,O[0],O[1],F[0],F[1],C.cos,4); arrow(ctx,F[0],F[1],P[0],P[1],C.sin,4);
+  if(m>0.8){ const r=Math.min(26,m*g.u*0.4); arc(ctx,O[0],O[1],r,a,C.accent); text(ctx,'θ',O[0]+Math.cos(rad(a/2))*(r+12),O[1]-Math.sin(rad(a/2))*(r+12),C.accent,{bold:true}); }
+  arrow(ctx,O[0],O[1],P[0],P[1],C.ink,3.5);
+  if(Math.abs(V[0])>0.8) text(ctx,'vx = '+fmtN(V[0]),(O[0]+F[0])/2,O[1]+(V[1]>=0?26:-26),C.cos,{bold:true});
+  if(Math.abs(V[1])>0.8) text(ctx,'vy = '+fmtN(V[1]),P[0]+(V[0]>=0?10:-10),(F[1]+P[1])/2,C.sin,{bold:true,align:V[0]>=0?'left':'right'});
+  dot(ctx,P[0],P[1],8,C.accent,C.surface);
+});
+function setV(x,y){
+  if($('snapV').checked){ x=Math.round(x*2)/2; y=Math.round(y*2)/2; }
+  V=[clampV(x),clampV(y)]; const m=Math.hypot(V[0],V[1]), a=ang360(V[0],V[1]);
+  $('cmMod').textContent=fmt(m); $('cmAng').textContent=fmt(a,1)+'°'; $('cmX').textContent=fmt(V[0]); $('cmY').textContent=fmt(V[1]);
+  $('cmF1').innerHTML='<b class="cos">v<sub>x</sub></b> = v · cos θ = '+fmt(m)+' · cos '+fmt(a,1)+'° = <b class="cos">'+fmt(V[0])+'</b>';
+  $('cmF2').innerHTML='<b class="sin">v<sub>y</sub></b> = v · sin θ = '+fmt(m)+' · sin '+fmt(a,1)+'° = <b class="sin">'+fmt(V[1])+'</b>';
+  $('cmF3').innerHTML='v = √(<b class="cos">v<sub>x</sub></b>² + <b class="sin">v<sub>y</sub></b>²) = √('+fmt(V[0]*V[0])+' + '+fmt(V[1]*V[1])+') = <b>'+fmt(m)+'</b>';
+  bComp.redraw();
+}
+dragOn(bComp,(x,y)=>{ const p=toWorld(bComp,x,y); setV(p[0],p[1]); });
+$('snapV').addEventListener('change',()=>setV(V[0],V[1]));
+$('cComp').addEventListener('keydown',e=>{ const k={ArrowLeft:[-.5,0],ArrowRight:[.5,0],ArrowUp:[0,.5],ArrowDown:[0,-.5]}[e.key]; if(!k)return; e.preventDefault(); setV(V[0]+k[0],V[1]+k[1]); });
+
+/* ================= 4. SOMMA ================= */
+let A=[4,1], Bv=[1,3], pick='a';
+const tail=()=>$('mPc').checked;
+const bSum=board($('cSum'),(ctx,w,h)=>{
+  const g=plane(ctx,w,h), O=g.S(0,0), pa=g.S(A[0],A[1]), pb=g.S(Bv[0],Bv[1]), ps=g.S(A[0]+Bv[0],A[1]+Bv[1]);
+  if(tail()){
+    arrow(ctx,O[0],O[1],pa[0],pa[1],C.va,3.5); arrow(ctx,pa[0],pa[1],ps[0],ps[1],C.vb,3.5);
+    text(ctx,'b',(pa[0]+ps[0])/2+12,(pa[1]+ps[1])/2-12,C.vb,{bold:true,size:16});
+  } else {
+    line(ctx,pa[0],pa[1],ps[0],ps[1],C.vb,1.5,[6,5]); line(ctx,pb[0],pb[1],ps[0],ps[1],C.va,1.5,[6,5]);
+    arrow(ctx,O[0],O[1],pa[0],pa[1],C.va,3.5); arrow(ctx,O[0],O[1],pb[0],pb[1],C.vb,3.5);
+    text(ctx,'b',(O[0]+pb[0])/2-12,(O[1]+pb[1])/2-12,C.vb,{bold:true,size:16});
+  }
+  text(ctx,'a',(O[0]+pa[0])/2+10,(O[1]+pa[1])/2+14,C.va,{bold:true,size:16});
+  arrow(ctx,O[0],O[1],ps[0],ps[1],C.accent,4.5);
+  text(ctx,'a + b',ps[0]+(A[0]+Bv[0]>=0?12:-12),ps[1]-12,C.accent,{bold:true,size:15,align:A[0]+Bv[0]>=0?'left':'right'});
+  dot(ctx,pa[0],pa[1],8,C.va,C.surface);
+  const hb=tail()?ps:pb; dot(ctx,hb[0],hb[1],8,C.vb,C.surface);
+});
+function setSum(){
+  const S=[A[0]+Bv[0],A[1]+Bv[1]];
+  const rowH=(n,c,v)=>'<tr><td><b class="'+c+'">'+n+'</b></td><td>'+fmt(v[0],1)+'</td><td>'+fmt(v[1],1)+'</td><td>'+fmt(Math.hypot(v[0],v[1]))+'</td><td>'+fmt(ang360(v[0],v[1]),1)+'°</td></tr>';
+  $('sumT').innerHTML=rowH('a','va',A)+rowH('b','vb',Bv)+rowH('a + b','vs',S);
+  $('sumF').innerHTML='x: '+fmt(A[0],1)+' + ('+fmt(Bv[0],1)+') = <b class="vs">'+fmt(S[0],1)+'</b> &nbsp; y: '+fmt(A[1],1)+' + ('+fmt(Bv[1],1)+') = <b class="vs">'+fmt(S[1],1)+'</b>';
+  const ma=Math.hypot(A[0],A[1]), mb=Math.hypot(Bv[0],Bv[1]), ms=Math.hypot(S[0],S[1]);
+  $('sumN').innerHTML='<span style="color:var(--muted)">I moduli non si sommano: '+fmt(ma)+' + '+fmt(mb)+' = '+fmt(ma+mb)+', ma |a + b| = '+fmt(ms)+'.</span>';
+  bSum.redraw();
+}
+dragOn(bSum,(x,y,start)=>{
+  const p=toWorld(bSum,x,y);
+  if(start){ const hb=tail()?[A[0]+Bv[0],A[1]+Bv[1]]:Bv; pick=Math.hypot(p[0]-A[0],p[1]-A[1])<=Math.hypot(p[0]-hb[0],p[1]-hb[1])?'a':'b'; }
+  const r=v=>clampV(Math.round(v*2)/2);
+  if(pick==='a') A=[r(p[0]),r(p[1])]; else if(tail()) Bv=[r(p[0]-A[0]),r(p[1]-A[1])]; else Bv=[r(p[0]),r(p[1])];
+  setSum();
+});
+$('mPar').addEventListener('change',setSum); $('mPc').addEventListener('change',setSum);
+$('cSum').addEventListener('keydown',e=>{ const k={ArrowLeft:[-.5,0],ArrowRight:[.5,0],ArrowUp:[0,.5],ArrowDown:[0,-.5]}[e.key]; if(!k)return; e.preventDefault(); A=[clampV(A[0]+k[0]),clampV(A[1]+k[1])]; setSum(); });
+
+/* ================= 5. ESERCIZI ================= */
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=ri(0,i); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function build(kind,q,right,wrongs,why){
+  const seen=new Set([right]), opts=[right];
+  for(const x of wrongs){ if(opts.length>=4)break; if(!seen.has(x)){ seen.add(x); opts.push(x); } }
+  return {kind,q,right,opts:shuffle(opts),why};
+}
+function numOpts(c,cands){ const out=cands.map(x=>fmt(x)); let k=1; while(out.length<8){ out.push(fmt(c+k*(k%2?1.5:-1.5))); k++; } return out; }
+const GEN=[
+  function(){ const a=rnd([0,30,45,60,90,120,135,150,180,270]), f=rnd(['sin','cos']);
+    const v=f==='sin'?Math.sin(rad(a)):Math.cos(rad(a)), o=f==='sin'?Math.cos(rad(a)):Math.sin(rad(a));
+    const all=shuffle(['0','1/2','√2/2','√3/2','1','−1/2','−√2/2','−√3/2','−1']);
+    return build('Valori notevoli','Quanto vale '+f+' '+a+'°?',exact(v),[exact(o),exact(-v)].concat(all),
+      'Sulla circonferenza goniometrica il punto a '+a+'° ha coordinate ('+exact(Math.cos(rad(a)))+' ; '+exact(Math.sin(rad(a)))+'). Il coseno è la x, il seno è la y.'); },
+  function(){ const v=rnd([2,4,6,8,10]), a=rnd([30,45,60,120,150]), ax=rnd(['x','y']);
+    const co=v*Math.cos(rad(a)), si=v*Math.sin(rad(a)), c=ax==='x'?co:si, o=ax==='x'?si:co;
+    return build('Componenti','Un vettore ha modulo '+v+' e forma un angolo di '+a+'° con l\'asse x. Quanto vale la componente v<sub>'+ax+'</sub>?',fmt(c),numOpts(c,[o,-c,v,-o,v/2]),
+      'v<sub>'+ax+'</sub> = v · '+(ax==='x'?'cos':'sin')+' θ = '+v+' · '+fmt(c/v,3)+' = '+fmt(c)+'.'+(a>90&&ax==='x'?' L\'angolo è nel secondo quadrante, quindi la componente x è negativa.':'')); },
+  function(){ const t=rnd([[3,4],[6,8],[5,12],[8,15],[4,3]]), x=t[0]*rnd([1,-1]), y=t[1]*rnd([1,-1]), m=Math.hypot(x,y);
+    return build('Modulo','Un vettore ha componenti ('+fmtN(x)+' ; '+fmtN(y)+'). Quanto vale il suo modulo?',fmt(m),numOpts(m,[Math.abs(x)+Math.abs(y),Math.sqrt(Math.abs(x*x-y*y)),Math.abs(Math.abs(x)-Math.abs(y)),m/2]),
+      'v = √(v<sub>x</sub>² + v<sub>y</sub>²) = √('+x*x+' + '+y*y+') = √'+(x*x+y*y)+' = '+fmtN(m)+'. Il segno delle componenti non conta, perché si elevano al quadrato.'); },
+  function(){ let a,b; do{ a=[ri(-5,5),ri(-5,5)]; b=[ri(-5,5),ri(-5,5)]; }while(!b[0]||!b[1]||a[0]===a[1]&&b[0]===b[1]);
+    const P=(x,y)=>'('+fmtN(x)+' ; '+fmtN(y)+')', s=[a[0]+b[0],a[1]+b[1]];
+    return build('Somma','Dati a = '+P(a[0],a[1])+' e b = '+P(b[0],b[1])+', quali sono le componenti di a + b?',P(s[0],s[1]),
+      [P(a[0]-b[0],a[1]-b[1]),P(a[0]+b[1],a[1]+b[0]),P(s[1],s[0]),P(a[0]*b[0],a[1]*b[1]),P(s[0]+1,s[1]),P(s[0],s[1]-1),P(-s[0],-s[1])],
+      'Si sommano le componenti corrispondenti: x = '+fmtN(a[0])+' + ('+fmtN(b[0])+') = '+fmtN(s[0])+', y = '+fmtN(a[1])+' + ('+fmtN(b[1])+') = '+fmtN(s[1])+'.'); },
+  function(){ const i=rnd([4,6,8,10,12]), a=rnd([30,45,60]), w=rnd(['opposto','adiacente']);
+    const op=i*Math.sin(rad(a)), ad=i*Math.cos(rad(a)), c=w==='opposto'?op:ad, o=w==='opposto'?ad:op;
+    return build('Triangolo rettangolo','In un triangolo rettangolo l\'ipotenusa misura '+i+' e un angolo acuto è di '+a+'°. Quanto misura il cateto '+w+' a quell\'angolo?',fmt(c),numOpts(c,[o,i*Math.tan(rad(a)),i/2,i*2*Math.sin(rad(a))]),
+      'cateto '+w+' = i · '+(w==='opposto'?'sin':'cos')+' α = '+i+' · '+fmt(c/i,3)+' = '+fmt(c)+'.'); },
+  function(){ const t=rnd([[3,3,45],[-2,2,135],[0,5,90],[-4,0,180],[2,-2,315],[-3,-3,225],[0,-4,270],[5,0,0]]);
+    return build('Direzione','Che angolo forma con l\'asse x positivo il vettore ('+fmtN(t[0])+' ; '+fmtN(t[1])+')? L\'angolo si misura in senso antiorario.',t[2]+'°',
+      shuffle([0,45,90,135,180,225,270,315]).map(x=>x+'°'),
+      'Disegna il vettore: '+(t[0]&&t[1]?'le due componenti hanno lo stesso valore assoluto, quindi il vettore sta sulla diagonale del suo quadrante.':'una componente è nulla, quindi il vettore sta su un asse.')+' L\'angolo è '+t[2]+'°.'); }
+];
+let cur=null, done=0, good=0, last=-1;
+function nextQ(){
+  let i; do{ i=ri(0,GEN.length-1); }while(i===last); last=i; cur=GEN[i]();
+  $('qKind').textContent=cur.kind; $('qText').innerHTML=cur.q; $('qFb').innerHTML=''; $('qOpts').innerHTML='';
+  cur.opts.forEach(o=>{ const b=document.createElement('button'); b.type='button'; b.textContent=o; b.addEventListener('click',()=>answer(b,o)); $('qOpts').appendChild(b); });
+  showScore();
+}
+function answer(btn,o){
+  const ok=o===cur.right; done++; if(ok)good++;
+  Array.from($('qOpts').children).forEach(b=>{ b.disabled=true; if(b.textContent===cur.right)b.classList.add('right'); });
+  if(!ok)btn.classList.add('wrong');
+  $('qFb').innerHTML=(ok?'<strong class="ok">Giusto.</strong> ':'<strong class="no">Non è questa.</strong> La risposta è '+cur.right+'. ')+cur.why;
+  showScore(); $('qNext').focus();
+}
+function showScore(){ $('score').textContent=done?'Corrette: '+good+' su '+done:'Nessuna risposta ancora'; }
+$('qNext').addEventListener('click',nextQ);
+
+/* ================= schede ================= */
+const VIEWS=['circonferenza','triangolo','componenti','somma','esercizi'];
+function route(){
+  let v=location.hash.replace('#',''); if(VIEWS.indexOf(v)<0)v=VIEWS[0];
+  VIEWS.forEach(n=>{ $('v-'+n).hidden=n!==v; });
+  document.querySelectorAll('nav a').forEach(a=>{ if(a.getAttribute('href')==='#'+v)a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+}
+window.addEventListener('hashchange',route);
+
+/* ================= avvio e tema ================= */
+function repaint(){ readColors(); boards.forEach(b=>b.redraw()); }
+readColors(); route(); setTheta(theta); setTri(); setV(V[0],V[1]); setSum(); nextQ();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',repaint);
+new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(repaint);
+})();
+</script>
+</body>
+</html>
